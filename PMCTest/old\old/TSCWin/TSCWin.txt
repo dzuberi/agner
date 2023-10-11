@@ -1,0 +1,30 @@
+                         TSCWin.txt                      2005-07-19 Agner Fog
+
+                     TSC Test program
+
+© 2005 GNU General Public License www.gnu.org/licenses
+
+This program is intended for optimizing a little piece of code written in 
+assembly. The code to test is inserted at the indicated place in
+TSCTestB32.asm or TSCTestB64.asm.
+
+The code to test will be executed REPETITIONS times and the test results
+will be output for each repetition. This program measures how many clock
+cycles the code to test takes in each repetition.
+
+Compile and link TSCTestA.cpp and TSCTestB32.asm or TSCTestB64.asm for 
+console mode Windows, 32 or 64 bits.
+
+File list:
+----------
+TSCTestA.cpp:      C++ Source code for 32 and 64 bit mode.
+TSCTestB32.asm:    Assembly source code for 32 bit mode.
+TSCTestB64.asm:    Assembly source code for 64 bit mode.
+MakeTSCTest32.bat: Batch file for compiling test program for 32 bit mode.
+MakeTSCTest64.bat: Batch file for compiling test program for 64 bit mode.
+W32.dsw, W32.dsp:  MS Project workspace and project file for compiling test 
+                   program for 32 bit mode.
+w64.vcproj TSCWin\w64.sln TSCWin\w64.suo:
+                   Project files for MS Visual Studio 2005 for compiling 
+                   test program for 64 bit mode.
+TSCWin.txt:        This file.

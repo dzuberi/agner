@@ -1,0 +1,137 @@
+#instruction,registertype,num operands,imm op,test mode,instr set,options
+,,,,,,
+$text=\nMiscellaneous optional instruction sets beyond AVX512,,,,,,
+,,,,,,
+$text=\nAVX512 VBMI instructions,,,,,,
+,,,,,,
+vpmultishiftqb,128,3,,lt,avx512vbmi,3op
+vpmultishiftqb,256,3,,lt,avx512vbmi,3op
+vpmultishiftqb,512,3,,lt,avx512vbmi,3op
+,,,,,,
+,,,,,,
+$text=\nAVX512 VBMI2 instructions,,,,,,
+,,,,,,
+vpshldw,128,3,8,lt,avx512vbmi2,3op
+vpshldw,512,3,7,lt,avx512vbmi2,3op
+vpshldd,256,3,6,lt,avx512vbmi2,3op
+vpshldd,512,3,5,lt,avx512vbmi2,3op
+vpshldq,128,3,4,lt,avx512vbmi2,3op
+vpshldq,512,3,3,lt,avx512vbmi2,3op
+vpshrdw,512,3,7,lt,avx512vbmi2,3op
+vpshrdd,512,3,5,lt,avx512vbmi2,3op
+vpshrdq,512,3,3,lt,avx512vbmi2,3op
+$text=\nnasm assembler fails on this one. Bug report submitted:,,,,,,
+vpshldvw,128,3,,lt,avx512vbmi2,3op
+vpshldvw,256,3,,lt,avx512vbmi2,3op
+vpshldvw,512,3,,lt,avx512vbmi2,3op
+vpshldvd,512,3,,lt,avx512vbmi2,3op
+vpshldvq,512,3,,lt,avx512vbmi2,3op
+vpshrdvw,512,3,,lt,avx512vbmi2,3op
+vpshrdvd,512,3,,lt,avx512vbmi2,3op
+vpshrdvq,512,3,,lt,avx512vbmi2,3op
+,,,,,,
+$text=\nConflict detection instructions,,,,,,
+vplzcntd,128,2,,ltm,avx512cd,
+vplzcntd,256,2,,ltm,avx512cd,
+vplzcntd,512,2,,ltm,avx512cd,
+vplzcntq,128,2,,ltm,avx512cd,
+vplzcntq,256,2,,ltm,avx512cd,
+vplzcntq,512,2,,ltm,avx512cd,
+vpconflictd,128,2,,ltm,avx512cd,
+vpconflictd,256,2,,ltm,avx512cd,
+vpconflictd,512,2,,ltm,avx512cd,
+vpconflictq,128,2,,ltm,avx512cd,
+vpconflictq,256,2,,ltm,avx512cd,
+vpconflictq,512,2,,ltm,avx512cd,
+,,,,,,
+$text=\nVX512_IFMA instructions,,,,,,
+vpmadd52huq,128,3,,lt,AVX512IFMA,3op
+vpmadd52huq,256,3,,lt,AVX512IFMA,3op
+vpmadd52huq,512,3,,lt,AVX512IFMA,3op
+vpmadd52luq,128,3,,lt,AVX512IFMA,3op
+vpmadd52luq,256,3,,lt,AVX512IFMA,3op
+vpmadd52luq,512,3,,lt,AVX512IFMA,3op
+,,,,,,
+$text=\nAVX512_VNNI instructions,,,,,,
+vpdpbusd,128,3,,lt,AVX512VNNI,3op
+vpdpbusd,256,3,,lt,AVX512VNNI,3op
+vpdpbusd,512,3,,lt,AVX512VNNI,3op
+vpdpbusds,512,3,,lt,AVX512VNNI,3op
+vpdpwssd,512,3,,lt,AVX512VNNI,3op
+vpdpwssds,512,3,,lt,AVX512VNNI,3op
+,,,,,,
+$text=\nAVX512BITALG and VX512VPOPCNTDQ instructions,,,,,,
+vpopcntb,128,2,,lt,AVX512BITALG ,
+vpopcntb,256,2,,lt,AVX512BITALG ,
+vpopcntb,512,2,,lt,AVX512BITALG ,
+vpopcntw,512,2,,lt,AVX512BITALG ,
+vpopcntd,512,2,,lt,VX512VPOPCNTDQ,
+vpopcntq,512,2,,lt,VX512VPOPCNTDQ,
+,,,,,,
+VPSHUFBITQMB,128,3,,maskcmplt,AVX512BITALG ,
+VPSHUFBITQMB,256,3,,maskcmplt,AVX512BITALG ,
+VPSHUFBITQMB,512,3,,maskcmplt,AVX512BITALG ,
+,,,,,,
+$text=\nGalois field instructions,,,,,,
+GF2P8AFFINEINVQB,128,2,1,,GFNI,
+VGF2P8AFFINEINVQB,128,3,1,lt,GFNI,
+VGF2P8AFFINEINVQB,256,3,2,lt,GFNI,
+VGF2P8AFFINEINVQB,512,3,3,lt,GFNI,
+VGF2P8AFFINEQB,128,2,5,lt,GFNI,
+VGF2P8AFFINEQB,128,3,5,lt,GFNI,
+VGF2P8AFFINEQB,512,3,7,lt,GFNI,
+VGF2P8MULB,128,2,,lt,GFNI,
+VGF2P8MULB,128,3,,lt,GFNI,
+VGF2P8MULB,512,3,,lt,GFNI,
+,,,,,,
+,,,,,,
+$text=\nCryptology instructions,,,,,,
+pclmulqdq,128,2,1,ltm,pclmulqdq,
+vpclmulqdq,128,3,1,ltm,vpclmulqdq,
+vpclmulqdq,256,3,1,ltm,vpclmulqdq,
+vpclmulqdq,512,3,1,ltm,vpclmulqdq,
+,,,,,,
+aesdec,128,2,,ltm,aes,
+aesdeclast,128,2,,lt,aes,
+aesenc,128,2,,ltm,aes,
+aesenclast,128,2,,lt,aes,
+aesimc,128,2,,lt,aes,
+aeskeygenassist,128,2,5,lt,aes,
+vaesimc,128,2,,lt,vaes,
+vaeskeygenassist,128,2,5,lt,vaes,
+vaesdec,256,3,,ltm,vaes,
+vaesdeclast,256,3,,lt,vaes,
+vaesenc,256,3,,ltm,vaes,
+vaesenclast,256,3,,lt,vaes,
+vaesenc,512,3,,ltm,vaes,
+vaesenclast,512,3,,lt,vaes,
+vaesdec,512,3,,ltm,vaes,
+vaesdeclast,512,3,,lt,vaes,
+,,,,,,
+$text=\nSHA instructions,,,,,,
+SHA1RNDS4,128,2,1,lt,sha,
+SHA1NEXTE,128,2,,lt,sha,
+SHA1MSG1,128,2,,lt,sha,
+SHA1MSG2,128,2,,lt,sha,
+SHA256RNDS2,128,3,,macros=miscellaneous.inc,sha,tmode=L modelins=blendvps
+SHA256RNDS2,128,3,,macros=miscellaneous.inc,sha,tmode=T modelins=blendvps
+SHA256MSG1,128,2,,lt,sha,
+SHA256MSG2,128,2,,lt,sha,
+,,,,,,
+,,,,,,
+$text=\nDirect store not tested,,,,,,
+#MOVDIRI,,,,,,
+,,,,,,
+$text=\nAVX512_VP2INTERSECT not tested,,,,,,
+#VP2INTERSECTD/VP2INTERSECTQ,,,,,,
+,,,,,,
+$text=\nBF16 instructions,,,,,,
+VCVTNE2PS2BF16,128,3,,lt,AVX512BF16,
+VCVTNE2PS2BF16,256,3,,lt,AVX512BF16,
+VCVTNE2PS2BF16,512,3,,lt,AVX512BF16,
+VCVTNEPS2BF16,128,3,,lt,AVX512BF16,
+VCVTNEPS2BF16,256,3,,lt,AVX512BF16,
+VCVTNEPS2BF16,512,3,,lt,AVX512BF16,
+VDPBF16PS,128,3,,lt,AVX512BF16,
+VDPBF16PS,256,3,,lt,AVX512BF16,
+VDPBF16PS,512,3,,lt,AVX512BF16,

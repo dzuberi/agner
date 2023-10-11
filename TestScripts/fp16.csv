@@ -1,0 +1,85 @@
+# fp16.csv: Test AVX512_FP16 instructions using half-precision floating point,,,,,,
+# 2022-05-13,,,,,,
+instrname,registertype,num operands,imm op,test mode,instr set,options
+,,,,,,
+$text=\nHalf precision floating point vector instructions,,,,,,
+,,,,,,
+vaddph,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50058
+vaddph,256,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50058
+vaddph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50058
+vaddph,128,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50058
+vaddph,256,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50058
+vaddph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50058
+vaddsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x52058
+vaddsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x52058
+vsubph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005C
+vsubph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5005C
+vmulph,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50059
+vmulph,128,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50059
+vmulph,256,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50059
+vmulph,256,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50059
+vmulph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50059
+vmulph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50059
+vmulsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x52059
+vmulsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x52059
+vdivph,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivph,256,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivph,128,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivph,256,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5005E regval0=0x3c00 regval1=0x4001
+vdivsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5205E regval0=0x3c00 regval1=0x4001
+vdivsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x5205E regval0=0x3c00 regval1=0x4001
+vfmadd,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x610B8
+vfmadd,256,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x610B8
+vfmadd,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x610B8
+vfmadd,128,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x610B8
+vfmadd,256,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x610B8
+vfmadd,512,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x610B8
+vfmulcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x630D6
+vfmulcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x630D6
+vfmaddcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x63056
+vfmaddcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x63056
+vcmpph,k32,3,2,macros=evex.inc,avx512_fp16,tmode1=T evex=0x300C2
+vcomish,128,2,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5002F
+vmaxph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005F
+vmaxph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x5005F
+vsqrtph,128,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50051 regval0=0x4111
+vsqrtph,256,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50051 regval0=0x4111
+vsqrtph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50051 regval0=0x4111
+vsqrtph,512,2,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x50051 regval0=0x4111
+vrcpph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x6104C regval0=0x4111
+vrcpph,512,2,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x6104C regval0=0x4111
+vrsqrtph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x6104E regval0=0x4111
+vrsqrtph,512,2,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x6104E regval0=0x4111
+vreduceph,512,2,1,macros=evex.inc,avx512_fp16,tmode1=L evex=0x30056 regval0=0x4111
+vrndscaleph,512,2,1,macros=evex.inc,avx512_fp16,tmode1=L evex=0x30008 regval0=0x4111
+vscaleph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x6102C regval0=0x4111
+vmovsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x52010
+vcvtph2psx,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x61013
+vcvtps2phx,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5101D
+vcvtdq2ph,128,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005B
+vcvtdq2ph,128,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005B
+vcvtph2dq,128,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5105B
+vcvtpd2ph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5115A
+vcvtph2pd,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5005A
+vcvtph2qq,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5107B
+vcvtqq2ph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5015B
+vcvtph2udq,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x50079
+vcvtudq2ph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5307A
+vcvtph2uw,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5007D
+vcvtuw2ph,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5307D
+vcvttph2w,512,2,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x5107C
+,,,,,,
+$text=\nHalf precision complex number vector instructions,,,,,,
+vfmaddcph,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x62056
+vfmaddcph,128,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x62056
+vfmaddcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x62056
+vfmaddcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T0 evex=0x62056
+vfmaddcsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x62057
+vfmulcsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x620D7
+vfcmulcsh,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x620D7
+vfmulcph,128,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x630D6
+vfmulcph,128,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x620D6
+vcfmulcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=L evex=0x630D6
+vcfmulcph,512,3,,macros=evex.inc,avx512_fp16,tmode1=T evex=0x630D6

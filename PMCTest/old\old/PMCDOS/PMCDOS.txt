@@ -1,0 +1,169 @@
+Test programs                                    (c) Agner Fog 2004-01-20
+
+This package contains assembly programs for testing how many clock cycles
+a piece of code takes to execute.
+
+These programs are published as they are without any support or warranty.
+All my software is copyrighted under the GNU General Public License 
+(www.gnu.org/copyleft/gpl.html).
+
+These programs are not for beginners. You must have a good knowledge of
+assembly programming to use these programs.
+
+It is possible to count micro-operations, branch mispredictions, cache
+misses and many other iteresting events by using the performance monitor 
+counters in the microprocessor. However, this requires full privileges, 
+which you can only get by starting the test program in real mode DOS (not in
+a DOS box under windows). Methods for getting the computer into real mode DOS
+are explained below.
+
+The following test programs can use performance monitor counters:
+P1TEST.ASM   for Pentium and Pentium MMX processors
+P23TEST.ASM  for Pentium Pro, Pentium 2, Pentium 3, and Pentium M processors
+P4TEST.ASM   for Pentium 4 processors
+64TEST.ASM   for Pentium 4 64 bit processors
+AMDTEST.ASM  for newer AMD processors
+
+These programs will turn off interrupt during the test.
+Use M16.BAT or M32.BAT to assemble P4TEST in 16-bit or 32-bit mode, 
+respectively, using the MASM assembler ML.EXE version 6.xx. Since this 
+assembler cannot run under DOS, it may be more convenient to use the Borland 
+TASM assembler 3.0 under DOS if you have it (TASM is no longer sold). 
+MASM v. 5.10 can also run under DOS, but it has a serious bug with near 
+relative jumps and calls in 32-bit mode. The include file p4macros.asi 
+provides access to new instructions not supported by these old assemblers.
+
+Use T16.BAT or T32.BAT to assemble P1TEST.ASM, P23TEST.ASM or P4TEST.ASM
+with TASM in 16-bit or 32-bit mode, respectively. These programs will 
+switch to 32-bit mode and back again if assembled with T32.BAT or M32.BAT
+and run under real mode DOS.
+Use T64.BAT to assemble 64TEST.ASM with TASM. This program will switch
+to 64-bit mode and back again.
+
+If you are not using performance monitor counters, then use
+P4TEST.ASM for all microprocessors.
+
+The programs are written in MASM 5.10 syntax so that they can be assembled 
+with TASM.
+
+How to get the computer into real mode DOS:
+-------------------------------------------
+If you want to use the performance monitor counters, then use one of these
+test programs in real mode DOS. Use one of these three methods for
+getting the computer into real mode DOS.
+
+Method 1: Booting from Windows 98 hard disk.
+Install the Windows 98 boot system files on a hard disk and boot the
+computer from this hard disk. It is not necessary to install the entire
+Windows system on the hard disk. If the hard disk has the entire Windows
+system installed then press F8 during boot and select "safe mode command 
+prompt only" to avoid getting into Windows mode.
+
+Method 2: Booting from a floppy disk.
+The floppy disk has to be formatted on a computer with one of these 
+operating systems: DOS, Windows 95, Windows 98, Windows 98 SE, 
+Windows ME or Windows XP. It is not possible to make a bootable floppy
+disk on Windows 2000 or Windows NT. The computer you are formatting the
+floppy disk on does not have to be the same computer as the one you want
+to test. Right-click on Floppy (A:), select "Format", and select "Copy 
+system files" or "Create an MS-DOS startup disk".
+
+After the floppy disk has been made bootable, you have to copy all files
+needed for the test to the floppy disk. This includes the test program
+(e.g. P4TEST.ASM), include files (*.ASI), assembler (TASM.EXE), linker
+(e.g. LINK16.EXE), batch files (*.BAT), and an ASCII editor 
+(e.g. EDIT.COM and EDIT.HLP from C:\WINDOWS\COMMAND\).
+
+It doesn't matter which operating system you have installed on the test 
+computer, since the hard disk will not be used during the test. Insert
+the bootable floppy disk in the test computer and restart. You may have
+to modify the BIOS setup in order to allow booting from a floppy disk.
+
+Method 3: Booting from a USB memory stick.
+A USB stick is a storage device to insert into a USB port. Some brands 
+of USB sticks can be made bootable, but not all. I have successfully
+used a USB stick of the type "Transcend JetFlash". Not all computers
+can boot from a USB stick, but many computers with a relatively new
+BIOS can. You have to try if it is possible on your computer. You may 
+have to modify the BIOS setup in order to allow booting from a USB
+device. Follow the instructions that come with the USB stick for how
+to make it bootable. The USB stick has to be formatted on a computer
+with Windows 98, Windows ME or Windows XP (not Windows 2000 or NT).
+The computer you are formatting the USB stick on does not have to be 
+the same computer as the one you want to test. After the USB stick
+has been made bootable, you have to copy all files needed for the test 
+to the USB stick, as described under method 2.
+
+Whatever method you are using for getting into real mode DOS, make sure
+you don't have EMM386 or any other virtual memory manager installed in
+config.sys. (HIMEM.SYS may be OK).
+
+
+File list:
+----------
+
+P1TEST.ASM:
+Test program for Pentium and Pentium MMX.
+Tests how many clock cycles a piece of code takes in 16-bit or 32-bit mode.
+Can use performance monitor counters.
+Runs under real mode DOS.
+
+P23TEST.ASM:
+Test program for Pentium Pro, Pentium II, Pentium III and Pentium M.
+Tests how many clock cycles a piece of code takes in 16-bit or 32-bit mode.
+Can use performance monitor counters.
+Runs under real mode DOS.
+
+P4TEST.ASM:
+Test program for all Intel-compatible 32-bit microprocessors.
+Tests how many clock cycles a piece of code takes in 16-bit or 32-bit mode.
+Can use performance monitor counters with Pentium 4 only.
+Runs under real mode DOS. Can also run under virtual mode DOS in 16-bit 
+mode without performance monitor counters.
+
+64TEST.ASM:
+Test program for Pentium 4, EM64T version
+Tests how many clock cycles a piece of code takes in 64-bit mode.
+Can use performance monitor counters with Pentium 4 EM64T only.
+Can run on AMD processors with performance monitor counters off.
+Runs under real mode DOS.
+
+CPUID.COM:
+Writes detailed information about the microprocessor it is running on.
+
+CPUID.ASM:
+Source code for CPUID.COM
+
+P4MACROS.ASI:
+Macros for defining new instructions not supported by old assemblers.
+Contains all new instructions up to Pentium 4 model 2.
+
+SSE3.ASI:
+Macros for defining new instructions not supported by old assemblers.
+Contains all new instructions up to Pentium 4, including SSE3.
+
+SSE3B.ASI:
+Macros for defining supplementary SSE3 instructions.
+
+M16.BAT:
+Assembles test program with Microsoft assembler and runs it in 16 bit mode.
+Runs at DOS prompt under Windows.
+
+M32.BAT:
+Assembles test program with Microsoft assembler to run in 32 bit mode.
+Can assemble under Windows, but the assembled program has to run in real mode DOS.
+
+T16.BAT:
+Assembles test program with Borland assembler and runs it in 16 bit mode.
+Must run in real mode DOS.
+
+T32.BAT:
+Assembles test program with Borland assembler and runs it in 32 bit mode.
+Must run in real mode DOS.
+
+T64.BAT:
+Assembles test program with Borland assembler and runs it in 64 bit mode.
+Must run in real mode DOS.
+
+PMCDOS.TXT:
+This file.

@@ -1,0 +1,704 @@
+;;;; P4MACROS.ASI ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; © Agner Fog 2003-12-12 ;;;
+;;                                                                           ;;
+;;  MACROS DEFINING NEW INSTRUCTIONS FOR PENTIUM AND LATER MICROPROCESSORS   ;;
+;;        Covers instructions from Pentium MMX to Pentium 4                  ;;
+;;                                                                           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.XLIST                                                                       ;;
+;;                                                                           ;;
+;;  Instructions:                                                            ;;
+;;  To use new instructions with an assembler that doesn't support           ;;
+;;  these, insert the following directive in your assembly file:             ;;
+;;  INCLUDE P4MACROS.ASI                                                         ;;
+;;                                                                           ;;
+;;  This file is written in MASM 5.10 syntax and works with TASM version 3.0 ;;
+;;  or higher and MASM version 5.10 or higher.                               ;;
+;;  The following assemblers may cause problems:                             ;;
+;;  MASM v. 5.10 has a bug that gives wrong jump addresses in 32 bit mode.   ;;
+;;  TASM32 v. 4.0, 5.0, 5.0o, 5.0r have various bugs that make them crash    ;;
+;;  in DOS or Windows or both when executing these macros.                   ;;
+;;  Microsoft ML version 6.11 doesn't work with these macros when output     ;;
+;;  is in COFF format with certain linkers.                                  ;;
+;;                                                                           ;;
+;;  The macros work in both 16 bit mode and 32 bit mode, provided that no    ;;
+;;  extra prefixes are needed. Make sure that all memory operands can be     ;;
+;;  addressed with the default segment register to avoid segment prefixes.   ;;
+;;  Example: CMOVE AX,BX in 32-bit mode should be coded as                   ;;
+;;     DB 66H                                                                ;;
+;;     CMOVE EAX,EBX                                                         ;;
+;;                                                                           ;;
+;;  Microprocessor specified must be .386 or higher.                         ;;
+;;                                                                           ;;
+;;  Note that operands containing space must be enclosed in angle brackets   ;;
+;;  in order to be interpreted as single operands by the macros, example:    ;;
+;;     MOVAPS XMM1, <[ESI + 16]>                                             ;;
+;;  or rewrite the operand to avoid the spaces:                              ;;
+;;     MOVAPS XMM1, [ESI+16]                                                 ;;
+;;  The size of memory operands should not be specified. For example, don't  ;;
+;;  write MOVAPS XMM1, OWORD PTR [ESI+16]                                    ;;
+;;                                                                           ;;
+;;  If your assembler runs out of string space, you may disable part of the  ;;
+;;  instructions by defining one or more of the following identifiers:       ;;
+;;  NOCOMPCC, NOCMOVE, NOFCOMI, NOMMINT, NOMMFLOAT, NOPREFETCH               ;;
+;;                                                                           ;;
+;; © 2003 GNU General Public License www.gnu.org/copyleft/gpl.html           ;;
+;;                                                                           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+IFDEF @version ; Microsoft assembler
+  IF @version GE 615
+    ; Assembler allready supports XMM instructions. Disable rest of file
+    SIMDSUPPORTED EQU 1
+    .686
+    .mmx
+    .xmm
+  ELSE
+    IF @version GE 600
+      OPTION M510  ; Make compatible with MASM 5.10 syntax
+    ENDIF
+  ENDIF
+ENDIF
+
+IFDEF SIMDSUPPORTED
+; ML assembler version 6.15 supports XMM instructions, except the 
+; instructions MOVSD and CMPSD which are confused with integer string
+; instructions with the same names. 
+; These XMM instructions are defined here:
+  
+MOVSD_ MACRO A, B
+  DB  0F2H
+  MOVUPS A, B
+ENDM
+
+CMPSD_ MACRO A, B, C
+  DB  0F2H
+  CMPPS A, B, C
+ENDM
+
+ELSE  ; The rest is for assemblers that don't support new instructions:
+
+; Macro used internally for examining whether parameters are mmx/xmm registers.
+; mmx and xmm register names are replaced by corresponding general registers
+; returned in PAR1 and PAR2. The type of register is returned in PAR1M and
+; PAR2M (0 = integer register or memory, 1 = mmx register, 2 = xmm register).
+XREGS MACRO R1, R2
+  LOCAL I
+  PAR1 EQU <R1>
+  PAR1M = 0
+  IRP M, <0,1,2,3,4,5,6,7>
+    I = 9
+    IFIDNI <MM&&M>, <R1>
+      I = M
+      PAR1M = 1
+    ENDIF
+    IFIDNI <XMM&&M>, <R1>
+      I = M
+      PAR1M = 2
+    ENDIF
+    IF I LT 9
+      IRP F, <ax,cx,dx,bx,sp,bp,si,di>
+        IF I EQ 0
+          IF @WordSize GT 2
+            PAR1 EQU <e&&&F>
+          ELSE
+            PAR1 EQU <F>
+          ENDIF
+          EXITM
+        ENDIF
+        I = I - 1
+      ENDM
+      EXITM
+    ENDIF
+  ENDM
+  PAR2 EQU <R2>
+  PAR2M = 0
+  IRP M, <0,1,2,3,4,5,6,7>
+    I = 9
+    IFIDNI <MM&&M>, <R2>
+      I = M
+      PAR2M = 1
+    ENDIF
+    IFIDNI <XMM&&M>, <R2>
+      I = M
+      PAR2M = 2
+    ENDIF
+    IF I LT 9
+      IRP F, <ax,cx,dx,bx,sp,bp,si,di>
+        IF I EQ 0
+          IF @WordSize GT 2
+            PAR2 EQU <e&&&F>
+          ELSE
+            PAR2 EQU <F>
+          ENDIF
+          EXITM
+        ENDIF
+        I = I - 1
+      ENDM
+      EXITM
+    ENDIF
+  ENDM
+ENDM
+
+
+; macro for general instruction with two or three operands
+; Parameters:
+; OPCODE: opcode byte
+; E: specifies prefixes and other options:
+;   2  if extra immediate byte operand,
+;   4  if DST is memory operand
+;   8  if DST may be a memory operand. Add IMM to OPCODE if DST is memory
+; 10H  if F3H prefix needed (scalar single precision float)
+; 20H  if F2H prefix needed (scalar double precision float)
+; 40H  if 66H prefix needed (packed double precision float)
+; 80H  if 66H prefix needed for 128 bit operands but not for 64 bit operands
+; DST  destination operand
+; SRC  source operand
+; IMM  optional immediate data byte
+COMMONINSTR MACRO OPCODE, E, DST, SRC, IMM
+LOCAL XX, YY
+  XREGS <DST>, <SRC>
+  ; prefixes:
+  IF E AND 10H
+    DB 0F3H   ; prefix for scalar single precision float
+  ENDIF
+  IF E AND 20H
+    DB 0F2H   ; prefix for scalar double precision float
+  ENDIF
+  IF E AND 40H
+    DB 066H   ; prefix for packed double precision float
+  ENDIF
+  IF (E AND 80H) AND (((PAR1M OR PAR2M) AND 2) NE 0)
+    DB 066H   ; prefix for 128 bit integer instruction
+  ENDIF
+  XX: ; model instruction start
+  IF (E AND 4) OR (E AND 8 AND PAR1M EQ 0)
+    BSF PAR2, @WordSize PTR (PAR1)
+  ELSE
+    IF PAR2M
+      BSF PAR1, PAR2
+    ELSE
+      BSF PAR1, @WordSize PTR (PAR2)
+    ENDIF
+  ENDIF
+  YY:
+  ORG XX+1 ; go back and change opcode byte
+  IF E AND 8 AND PAR1M EQ 0
+    DB OPCODE + IMM
+  ELSE
+    DB OPCODE
+  ENDIF
+  ORG YY   ; go forward to end of model instruction
+  IF E AND 2
+    DB IMM ; immediate operand
+  ENDIF
+ENDM
+
+
+; Meta-macro for defining instruction macros
+; Parameters:
+; OPNAME: name of instruction
+; OPCODE: opcode byte
+; R: specifies type of operands:
+; DST    SRC    type
+; 10H      1    32 bit integer register
+; 20H      2    64 bit mmx register
+; 40H      4    128 bit xmm register
+; 80H      8    memory operand
+; E: specifies prefixes and other options:
+;   2  if extra immediate byte operand,
+;   4  if DST is memory operand
+;   8  if DST may be a memory operand. Add B to OPCODE if DST is memory
+; 10H  if F3H prefix needed (scalar single precision float)
+; 20H  if F2H prefix needed (scalar double precision float)
+; 40H  if 66H prefix needed (packed double precision float)
+; 80H  if 66H prefix needed for 128 bit operands but not for 64 bit operands
+; B: extra byte immediate data if E&2, direction bit if E&8
+; A call to the INSTRDEF macro defines a new macro with the name given by OPNAME.
+INSTRDEF MACRO OPNAME, OPCODE, R, E, B
+  IF E AND 2
+    IFNB <B>
+      OPNAME MACRO DST, SRC
+        COMMONINSTR OPCODE, E, DST, SRC, B
+      ENDM
+    ELSE
+      OPNAME MACRO DST, SRC, IMM
+        COMMONINSTR OPCODE, E, DST, SRC, IMM 
+      ENDM
+    ENDIF
+  ELSE
+    OPNAME MACRO DST, SRC
+      COMMONINSTR OPCODE, E, DST, SRC, B
+    ENDM
+  ENDIF
+ENDM
+
+IFNDEF NOCMOVE
+
+; define integer conditional move instructions etc.
+INSTRDEF CMOVO, 0+40H, 19H, 0
+INSTRDEF CMOVNO, 1+40H, 19H, 0
+INSTRDEF CMOVB, 2+40H, 19H, 0
+INSTRDEF CMOVC, 2+40H, 19H, 0
+INSTRDEF CMOVNB, 3+40H, 19H, 0
+INSTRDEF CMOVNC, 3+40H, 19H, 0
+INSTRDEF CMOVAE, 3+40H, 19H, 0
+INSTRDEF CMOVZ, 4+40H, 19H, 0
+INSTRDEF CMOVE, 4+40H, 19H, 0
+INSTRDEF CMOVNZ, 5+40H, 19H, 0
+INSTRDEF CMOVNE, 5+40H, 19H, 0
+INSTRDEF CMOVBE, 6+40H, 19H, 0
+INSTRDEF CMOVNA, 6+40H, 19H, 0
+INSTRDEF CMOVA, 7+40H, 19H, 0
+INSTRDEF CMOVS, 8+40H, 19H, 0
+INSTRDEF CMOVNS, 9+40H, 19H, 0
+INSTRDEF CMOVP, 10+40H, 19H, 0
+INSTRDEF CMOVPE, 10+40H, 19H, 0
+INSTRDEF CMOVNP, 11+40H, 19H, 0
+INSTRDEF CMOVPO, 11+40H, 19H, 0
+INSTRDEF CMOVL, 12+40H, 19H, 0
+INSTRDEF CMOVNL, 13+40H, 19H, 0
+INSTRDEF CMOVGE, 13+40H, 19H, 0
+INSTRDEF CMOVLE, 14+40H, 19H, 0
+INSTRDEF CMOVNG, 14+40H, 19H, 0
+INSTRDEF CMOVG, 15+40H, 19H, 0
+
+INSTRDEF movnti, 0C3H, 84H, 4
+
+ENDIF  ; NOCMOVE
+
+; define floating point conditional move instructions
+; meta-macro for defining floating point instruction macro 
+; A call to FPIDEF defines a new macro with the name given by OPNAME
+FPIDEF MACRO OPNAME, OPCODE, MODELINSTR
+  OPNAME MACRO OP1, OP2
+    LOCAL X, Y
+    &IFNB <OP2>
+      &IFIDNI <OP1>, <st>
+      &ELSE
+        &IFIDNI <OP1>, <st(0)>
+        &ELSE
+          &.ERR1
+          &%OUT 'Error: First operand must be st'
+        &ENDIF
+      &ENDIF
+      OPNAME <OP2>
+    &ELSE
+      X:
+      MODELINSTR OP1
+      Y:
+      ORG X
+      DB OPCODE
+      ORG Y
+    &ENDIF
+  ENDM
+ENDM
+
+IFNDEF NOCMOVE
+FPIDEF FCMOVB, 0DAH, <FADD ST,>
+FPIDEF FCMOVC, 0DAH, <FADD ST,>
+FPIDEF FCMOVNB, 0DBH, <FADD ST,>
+FPIDEF FCMOVNC, 0DBH, <FADD ST,>
+FPIDEF FCMOVAE, 0DBH, <FADD ST,>
+FPIDEF FCMOVE, 0DAH, <FMUL ST,>
+FPIDEF FCMOVZ, 0DAH, <FMUL ST,>
+FPIDEF FCMOVNE, 0DBH, <FMUL ST,>
+FPIDEF FCMOVNZ, 0DBH, <FMUL ST,>
+FPIDEF FCMOVBE, 0DAH, <FST>
+FPIDEF FCMOVNA, 0DAH, <FST>
+FPIDEF FCMOVNBE, 0DBH, <FST>
+FPIDEF FCMOVA, 0DBH, <FST>
+FPIDEF FCMOVU, 0DAH, <FSTP>
+FPIDEF FCMOVNU, 0DBH, <FSTP>
+ENDIF
+
+IFNDEF NOFCOMI
+; define floating point compare instructions setting integer flags
+FPIDEF FCOMI, 0DBH, <FDIV ST,>
+FPIDEF FCOMIP, 0DFH, <FDIV ST,>
+FPIDEF FUCOMI, 0DBH, <FSUBR ST,>
+FPIDEF FUCOMIP, 0DFH, <FSUBR ST,>
+ENDIF
+
+PURGE FPIDEF
+
+IFNDEF NOMMINT  ; integer mmx/xmm instructions
+
+; define mmx/xmm shift instructions
+; meta-macro for defining MMX or XMM shift instruction macro 
+MMSHIFTDEF MACRO OPNAME, OPCODE, OPCODEI, REGI
+  OPNAME MACRO DST, SRC
+    LOCAL X, Y
+    &XREGS <DST>, <SRC>
+    IF (PAR1M OR PAR2M) AND 2
+      DB 066H   ; prefix if 128 bit integer operands
+    ENDIF    
+    X:
+    IF (.TYPE PAR2) AND 4  ; if immediate constant
+      IF @WordSize GT 2
+        BSF E&&REGI, PAR1
+      ELSE
+        BSF REGI, PAR1
+      ENDIF
+      DB SRC
+      Y:
+      ORG X+1
+      DB OPCODEI
+    ELSE
+      IF PAR2M
+        BSF PAR1, PAR2
+      ELSE
+        BSF PAR1, @WordSize PTR (PAR2)
+      ENDIF
+      Y:
+      ORG X+1
+      DB OPCODE
+    ENDIF
+    ORG Y
+  ENDM
+ENDM
+
+MMSHIFTDEF PSLLW, 0F1H, 71H, SI
+MMSHIFTDEF PSLLD, 0F2H, 72H, SI
+MMSHIFTDEF PSLLQ, 0F3H, 73H, SI
+MMSHIFTDEF PSLLDQ, 0F3H, 73H, DI ; does not check for illegal operands
+MMSHIFTDEF PSRAW, 0E1H, 71H, SP
+MMSHIFTDEF PSRAD, 0E2H, 72H, SP
+MMSHIFTDEF PSRLW, 0D1H, 71H, DX
+MMSHIFTDEF PSRLD, 0D2H, 72H, DX
+MMSHIFTDEF PSRLQ, 0D3H, 73H, DX
+MMSHIFTDEF PSRLDQ, 0D3H, 73H, BX ; does not check for illegal operands
+
+PURGE MMSHIFTDEF
+
+; integer mmx/xmm move instructions
+
+INSTRDEF movd, 6EH, 0EEH, 88H, 10H
+INSTRDEF movdqa, 6FH, 0CCH, 48H, 10H
+INSTRDEF movdqu, 6FH, 0CCH, 18H, 10H
+INSTRDEF movdq2q, 0D6H, 24H, 20H
+INSTRDEF movq2dq, 0D6H, 42H, 10H
+INSTRDEF maskmovq, 0F7H, 22H, 0
+INSTRDEF maskmovdqu, 0F7H, 22H, 40H
+INSTRDEF movntq, 0E7H, 82H, 4
+INSTRDEF movntdq, 0E7H, 82H, 44H
+
+MOVQ MACRO OP1, OP2
+  LOCAL X, Y
+  &XREGS <OP1>, <OP2>
+  IF PAR1M AND 2
+    DB 0F3H   ; prefix if 128 bit integer operands
+  ELSE 
+    IF PAR2M AND 2
+      DB 066H   ; prefix if 128 bit integer operands
+    ENDIF    
+  ENDIF    
+  X:
+  IF PAR1M
+    IF PAR2M
+      BSF PAR1, PAR2
+    ELSE
+      BSF PAR1, @WordSize PTR (PAR2)
+    ENDIF
+    Y:
+    ORG X+1
+    IF PAR1M AND 2
+      DB 07EH
+    ELSE
+      DB 06FH
+    ENDIF   
+  ELSE
+    BSF PAR2, @WordSize PTR (PAR1)
+    Y:
+    ORG X+1
+    IF PAR2M AND 2
+      DB 0D6H
+    ELSE
+      DB 07FH
+    ENDIF  
+  ENDIF
+  ORG Y
+ENDM
+
+; integer mmx/xmm instructions
+INSTRDEF packssdw, 06BH, 66H, 80H
+INSTRDEF packsswb, 063H, 66H, 80H
+INSTRDEF packuswb, 067H, 66H, 80H
+INSTRDEF paddb, 0FCH, 66H, 80H
+INSTRDEF paddd, 0FEH, 66H, 80H
+INSTRDEF paddq, 0D4H, 66H, 80H
+INSTRDEF paddsb, 0ECH, 66H, 80H
+INSTRDEF paddsw, 0EDH, 66H, 80H
+INSTRDEF paddusb, 0DCH, 66H, 80H
+INSTRDEF paddusw, 0DDH, 66H, 80H
+INSTRDEF paddq, 0D4H, 66H, 80H
+INSTRDEF paddw, 0FDH, 66H, 80H
+INSTRDEF pand, 0DBH, 66H, 80H
+INSTRDEF pandn, 0DFH, 66H, 80H
+INSTRDEF pcmpeqb, 074H, 66H, 80H
+INSTRDEF pcmpeqd, 076H, 66H, 80H
+INSTRDEF pcmpeqw, 075H, 66H, 80H
+INSTRDEF pcmpgtb, 064H, 66H, 80H
+INSTRDEF pcmpgtd, 066H, 66H, 80H
+INSTRDEF pcmpgtw, 065H, 66H, 80H
+INSTRDEF pmaddwd, 0F5H, 66H, 80H
+INSTRDEF pmulhw, 0E5H, 66H, 80H
+INSTRDEF pmullw, 0D5H, 66H, 80H
+INSTRDEF pmuludq, 0F4H, 66H, 80H
+INSTRDEF por, 0EBH, 66H, 80H
+INSTRDEF psubb, 0F8H, 66H, 80H
+INSTRDEF psubd, 0FAH, 66H, 80H
+INSTRDEF psubq, 0FBH, 66H, 80H
+INSTRDEF psubsb, 0E8H, 66H, 80H
+INSTRDEF psubsw, 0E9H, 66H, 80H
+INSTRDEF psubusb, 0D8H, 66H, 80H
+INSTRDEF psubusw, 0D9H, 66H, 80H
+INSTRDEF psubw, 0F9H, 66H, 80H
+INSTRDEF punpckhbw, 068H, 66H, 80H
+INSTRDEF punpckhdq, 06AH, 66H, 80H
+INSTRDEF punpckhwd, 069H, 66H, 80H
+INSTRDEF punpcklbw, 060H, 66H, 80H
+INSTRDEF punpckldq, 062H, 66H, 80H
+INSTRDEF punpcklwd, 061H, 66H, 80H
+INSTRDEF pxor, 0EFH, 66H, 80H
+
+EMMS  MACRO
+  DB  0FH, 77H
+ENDM
+
+; define mmx instructions not in Pentium II
+INSTRDEF punpckhqdq, 06DH, 44H, 40H
+INSTRDEF punpcklqdq, 06CH, 44H, 40H
+INSTRDEF pavgb, 0E0H, 2AH, 80H
+INSTRDEF pavgw, 0E3H, 2AH, 80H
+INSTRDEF pextrw, 0C5H, 1AH, 82H
+INSTRDEF pinsrw, 0C4H, 29H, 82H
+INSTRDEF pmaxsw, 0EEH, 2AH, 80H
+INSTRDEF pmaxub, 0DEH, 2AH, 80H
+INSTRDEF pminsw, 0EAH, 2AH, 80H
+INSTRDEF pminub, 0DAH, 2AH, 80H
+INSTRDEF pmovmskb, 0D7H, 1AH, 80H
+INSTRDEF pmulhuw, 0E4H, 2AH, 80H
+INSTRDEF psadbw, 0F6H, 2AH, 80H
+INSTRDEF pshufw, 70H, 2AH, 2
+INSTRDEF pshufd, 70H, 2AH, 42H
+INSTRDEF pshufhw, 70H, 2AH, 12H
+INSTRDEF pshuflw, 70H, 2AH, 22H
+
+ENDIF ; NOMMINT
+
+
+IFNDEF NOMMFLOAT ; floating point xmm instructions
+
+; floating point move instructions
+INSTRDEF movapd, 28H, 0CCH, 48H, 1
+INSTRDEF movaps, 28H, 0CCH, 08H, 1
+INSTRDEF movhpd, 16H, 0CCH, 48H, 1
+INSTRDEF movhps, 16H, 0CCH, 08H, 1
+INSTRDEF movlpd, 12H, 0CCH, 48H, 1
+INSTRDEF movlps, 12H, 0CCH, 08H, 1
+INSTRDEF movsd_, 10H, 0CCH, 28H, 1 ; another instruction already has the name MOVSD
+INSTRDEF movss, 10H, 0CCH, 18H, 1
+INSTRDEF movupd, 10H, 0CCH, 48H, 1
+INSTRDEF movups, 10H, 0CCH, 08H, 1
+INSTRDEF movmskpd, 050H, 14H, 40H
+INSTRDEF movmskps, 50H, 14H, 0
+INSTRDEF movntpd, 02BH, 84H, 44H
+INSTRDEF movntps, 2BH, 84H, 4
+INSTRDEF movhlps, 12H, 4CH, 0
+INSTRDEF movlhps, 16H, 4CH, 0
+
+; floating point arithmetic instructions
+INSTRDEF addpd, 58H, 4CH, 40H
+INSTRDEF addps, 58H, 4CH, 0
+INSTRDEF addsd, 58H, 4CH, 20H
+INSTRDEF addss, 58H, 4CH, 10H
+INSTRDEF andnpd, 55H, 4CH, 40H
+INSTRDEF andnps, 55H, 4CH, 0
+INSTRDEF andpd, 54H, 4CH, 40H
+INSTRDEF andps, 54H, 4CH, 0
+INSTRDEF cvtdq2pd, 0E6H, 49H, 10H
+INSTRDEF cvtdq2ps, 5BH, 49H, 0
+INSTRDEF cvtpi2pd, 2AH, 4AH, 40H
+INSTRDEF cvtpi2ps, 2AH, 4AH, 0
+INSTRDEF cvtpd2pi, 2DH, 2CH, 40H
+INSTRDEF cvtpd2dq, 0E6H, 49H, 20H
+INSTRDEF cvtps2dq, 5BH, 49H, 40H
+INSTRDEF cvtps2pd, 5AH, 49H, 0
+INSTRDEF cvtpd2ps, 5AH, 2CH, 40H
+INSTRDEF cvtps2pi, 2DH, 2CH, 0
+INSTRDEF cvtsd2si, 2DH, 49H, 20H
+INSTRDEF cvtsd2ss, 5AH, 49H, 20H
+INSTRDEF cvtsi2sd, 2AH, 49H, 20H
+INSTRDEF cvtsi2ss, 2AH, 49H, 10H
+INSTRDEF cvtss2si, 2DH, 1CH, 10H
+INSTRDEF cvtss2sd, 5AH, 49H, 10H
+INSTRDEF cvttps2pi, 2CH, 2CH, 0
+INSTRDEF cvttps2dq, 5BH, 4CH, 10H
+INSTRDEF cvttpd2pi, 2CH, 2CH, 40H
+INSTRDEF cvttpd2dq, 0E6H, 4CH, 40H
+INSTRDEF cvttss2si, 2CH, 1CH, 10H
+INSTRDEF cvttsd2si, 2CH, 1CH, 20H
+INSTRDEF divpd, 5EH, 4CH, 40H
+INSTRDEF divps, 5EH, 4CH, 0
+INSTRDEF divsd, 5EH, 4CH, 20H
+INSTRDEF divss, 5EH, 4CH, 10H
+INSTRDEF maxpd, 5FH, 4CH, 40H
+INSTRDEF maxps, 5FH, 4CH, 0
+INSTRDEF maxsd, 5FH, 4CH, 20H
+INSTRDEF maxss, 5FH, 4CH, 10H
+INSTRDEF minpd, 5DH, 4CH, 40H
+INSTRDEF minps, 5DH, 4CH, 0
+INSTRDEF minsd, 5DH, 4CH, 20H
+INSTRDEF minss, 5DH, 4CH, 10H
+INSTRDEF mulpd, 59H, 4CH, 40H
+INSTRDEF mulps, 59H, 4CH, 0
+INSTRDEF mulsd, 59H, 4CH, 20H
+INSTRDEF mulss, 59H, 4CH, 10H
+INSTRDEF orpd, 56H, 4CH, 40H
+INSTRDEF orps, 56H, 4CH, 0
+INSTRDEF rcpps, 53H, 4CH, 0
+INSTRDEF rcpss, 53H, 4CH, 10H
+INSTRDEF rsqrtps, 52H, 4CH, 0
+INSTRDEF rsqrtss, 52H, 4CH, 10H
+INSTRDEF shufpd, 0C6H, 4CH, 42H
+INSTRDEF shufps, 0C6H, 4CH, 2
+INSTRDEF sqrtpd, 51H, 4CH, 40H
+INSTRDEF sqrtps, 51H, 4CH, 0
+INSTRDEF sqrtsd, 51H, 4CH, 20H
+INSTRDEF sqrtss, 51H, 4CH, 10H
+INSTRDEF subpd, 5CH, 4CH, 40H
+INSTRDEF subps, 5CH, 4CH, 0
+INSTRDEF subsd, 5CH, 4CH, 20H
+INSTRDEF subss, 5CH, 4CH, 10H
+INSTRDEF unpckhpd, 15H, 4CH, 40H
+INSTRDEF unpckhps, 15H, 4CH, 0
+INSTRDEF unpcklpd, 14H, 4CH, 40H
+INSTRDEF unpcklps, 14H, 4CH, 0
+INSTRDEF xorpd, 57H, 4CH, 40H
+INSTRDEF xorps, 57H, 4CH, 0
+
+; floating point compare instructions
+INSTRDEF cmppd, 0C2H, 4CH, 42H
+INSTRDEF cmpps, 0C2H, 4CH, 2
+INSTRDEF cmpsd_, 0C2H, 4CH, 22H    ; another instruction already has name CMPSD
+INSTRDEF cmpss, 0C2H, 4CH, 12H
+INSTRDEF comiss, 2FH, 4CH, 0
+INSTRDEF comisd, 2FH, 4CH, 40H
+INSTRDEF ucomiss, 2EH, 4CH, 0
+INSTRDEF ucomisd, 2EH, 4CH, 40H
+
+IFNDEF NOCOMPCC  ; detailed versions of floating point compare instructions
+
+INSTRDEF cmpeqps, 0C2H, 4CH, 2, 0
+INSTRDEF cmpeqpd, 0C2H, 4CH, 42H, 0
+INSTRDEF cmpltps, 0C2H, 4CH, 2, 1
+INSTRDEF cmpltpd, 0C2H, 4CH, 42H, 1
+INSTRDEF cmpleps, 0C2H, 4CH, 2, 2
+INSTRDEF cmplepd, 0C2H, 4CH, 42H, 2
+INSTRDEF cmpunordps, 0C2H, 4CH, 2, 3
+INSTRDEF cmpunordpd, 0C2H, 4CH, 42H, 3
+INSTRDEF cmpneqps, 0C2H, 4CH, 2, 4
+INSTRDEF cmpneqpd, 0C2H, 4CH, 42H, 4
+INSTRDEF cmpnltps, 0C2H, 4CH, 2, 5
+INSTRDEF cmpnltpd, 0C2H, 4CH, 42H, 5
+INSTRDEF cmpnleps, 0C2H, 4CH, 2, 6
+INSTRDEF cmpnlepd, 0C2H, 4CH, 42H, 6
+INSTRDEF cmpordps, 0C2H, 4CH, 2, 7
+INSTRDEF cmpordpd, 0C2H, 4CH, 42H, 7
+INSTRDEF cmpeqss, 0C2H, 4CH, 12H, 0
+INSTRDEF cmpeqsd, 0C2H, 4CH, 22H, 0
+INSTRDEF cmpltss, 0C2H, 4CH, 12H, 1
+INSTRDEF cmpltsd, 0C2H, 4CH, 22H, 1
+INSTRDEF cmpless, 0C2H, 4CH, 12H, 2
+INSTRDEF cmplesd, 0C2H, 4CH, 22H, 2
+INSTRDEF cmpunordss, 0C2H, 4CH, 12H, 3
+INSTRDEF cmpunordsd, 0C2H, 4CH, 22H, 3
+INSTRDEF cmpneqss, 0C2H, 4CH, 12H, 4
+INSTRDEF cmpneqsd, 0C2H, 4CH, 22H, 4
+INSTRDEF cmpnltss, 0C2H, 4CH, 12H, 5
+INSTRDEF cmpnltsd, 0C2H, 4CH, 22H, 5
+INSTRDEF cmpnless, 0C2H, 4CH, 12H, 6
+INSTRDEF cmpnlesd, 0C2H, 4CH, 22H, 6
+INSTRDEF cmpordss, 0C2H, 4CH, 12H, 7
+INSTRDEF cmpordsd, 0C2H, 4CH, 22H, 7
+ENDIF  ; NOCOMPCC
+
+ENDIF  ; NOMMFLOAT
+
+
+; define instructions with single or no memory operand
+
+; meta-macro for defining instruction macro with single memory operand.
+; Parameters:
+; OPNAME: instruction name
+; OPCODE: opcode byte
+; MODELINSTR: instruction to model after
+XSINGDEF MACRO OPNAME, OPCODE, MODELINSTR
+  OPNAME MACRO OP1
+    LOCAL X, Y
+    DB  0FH
+    X:
+    MODELINSTR  @WORDSIZE PTR [OP1], CL
+    Y:
+    ORG  X
+    DB OPCODE
+    ORG  Y
+  ENDM
+ENDM
+
+XSINGDEF fxsave, 0AEH, ROL
+XSINGDEF fxrstor, 0AEH, ROR
+XSINGDEF ldmxcsr, 0AEH, RCL
+XSINGDEF stmxcsr, 0AEH, RCR
+XSINGDEF prefetchnta, 18H, ROL
+XSINGDEF prefetcht0, 18H, ROR
+XSINGDEF prefetcht1, 18H, RCL
+XSINGDEF prefetcht2, 18H, RCR
+
+PURGE XSINGDEF
+
+SFENCE  MACRO
+        DB      0FH, 0AEH, 0F8H
+ENDM
+
+LFENCE  MACRO
+        DB      0FH, 0AEH, 0E8H
+ENDM
+
+MFENCE  MACRO
+        DB      0FH, 0AEH, 0F0H
+ENDM
+
+UD2     MACRO
+        DB 0FH, 0BH
+ENDM        
+
+PAUSE   MACRO
+        DB 0F3H, 90H
+ENDM        
+
+CPUID   MACRO
+        DB      0FH, 0A2H
+ENDM
+
+RDTSC   MACRO
+        DB      0FH, 31H
+ENDM
+
+WRMSR   MACRO
+        DB      0FH, 030H
+ENDM
+
+RDMSR   MACRO
+        DB      0FH, 032H
+ENDM
+
+RDPMC   MACRO
+        DB      0FH, 33H
+ENDM
+
+PURGE INSTRDEF
+
+ENDIF  ; SIMDSUPPORTED
+
+.LIST

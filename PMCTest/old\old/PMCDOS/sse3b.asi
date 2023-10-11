@@ -1,0 +1,94 @@
+;;;;;;;; SSE3B.ASI ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; © Agner Fog 2007-04-06 ;;
+;;                                                                           ;;
+;;          MACROS DEFINING NEW INSTRUCTIONS FOR THE SSE3B                   ;;
+;;             AKA SUPPLEMENTARY SSE3 INSTRUCTION SET                        ;;
+;;                                                                           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.XLIST                                                                       ;;
+;;                                                                           ;;
+;;  Instructions:                                                            ;;
+;;                                                                           ;;
+;;  Various versions of Microsoft macro assembler ml.exe and ml64.exe do     ;;
+;;  not support supplementary SSE3 instructions or do so with bugs.          ;;
+;;                                                                           ;;
+;;  To use these instructions with an assembler that doesn't support them    ;;
+;;  correctly, insert the following directive in your assembly file:         ;;
+;;  INCLUDE SSE3B.ASI                                                        ;;
+;;                                                                           ;;
+;;  Insert the .xmm directive if assembling for 32-bit mode (ml.exe).        ;;
+;;  Assemble with ml.exe or ml64.exe.                                        ;;
+;;                                                                           ;;
+;;  Examples:                                                                ;;
+;;  pshufb_  xmm1,xmm2                                                       ;;
+;;  palignr_ xmm1,xmm2,1                                                     ;;
+;;                                                                           ;;
+;;  The underscore is added to the name to distinguish the macro from the    ;;
+;;  assembler instruction which may be buggy.                                ;;
+;;                                                                           ;;
+;;  Some versions of ml64.exe do not allow mmx registers.                    ;;
+;;                                                                           ;;
+;;  The macros work in both 16 bit, 32 bit and 64 bit mode, provided that    ;;
+;;  no extra prefixes are needed and no rip-relative address is used.        ;;
+;;                                                                           ;;
+;;  Note that these macros do not work for instructions that require a REX   ;;
+;;  prefix in 64-bit mode. A REX prefix is needed if any of the registers    ;;
+;;  XMM8 - XMM15, R8 - R15 is used. Make sure that all memory operands       ;;
+;;  can be addressed with the default segment register to avoid segment      ;;
+;;  prefixes.                                                                ;;
+;;                                                                           ;;
+;;  Note that these macros do not work with rip-relative memory operands in  ;;
+;;  64-bit mode. It is recommended to disassemble the code with objconv to   ;;
+;;  check that the code is correct.                                          ;;
+;;                                                                           ;;
+;;  Note that operands containing space must be enclosed in angle brackets   ;;
+;;  in order to be interpreted as single operands by the macros, example:    ;;
+;;  phaddw_ xmm1, <[esi + 16]>                                               ;;
+;;                                                                           ;;
+;; © 2007 GNU General Public License www.gnu.org/copyleft/gpl.html           ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+Make3ByteInstruction MACRO InstrName, Opcode2, Opcode3, Imm
+; This meta-macro makes a macro for a SSE3B instruction
+; or other instruction with 3 bytes opcode.
+; InstrName = instruction name
+; Opcode2 = 2'nd byte of opcode
+; Opcode3 = 3'rd byte of opcode
+; Imm = 1 if instruction has immediate operand
+
+InstrName MACRO a, b, c
+local x, y               ;; Local labels
+x:
+org x+1                  ;; Instruction is one byte longer than model instruction
+paddw a, b               ;; Model instruction
+y:
+org x                    ;; Back-patch and overwrite model instruction
+if (type a) and 12h      ;; Check if mmx or xmm
+  db 66h                 ;; Operand size prefix if xmm register
+endif
+db 0fh, Opcode2, Opcode3 ;; Overwrite with new opcode
+org y                    ;; Go forward to end of instruction
+if Imm                   ;; If instruction has immediate operand
+  db c                   ;; Add immediate operand
+endif
+ENDM                     ;; End of InstrName MACRO
+ENDM                     ;; End of Make3ByteInstruction MACRO
+
+Make3ByteInstruction pshufb_,    38h, 00h, 0
+Make3ByteInstruction phaddw_,    38h, 01h, 0
+Make3ByteInstruction phaddd_,    38h, 02h, 0
+Make3ByteInstruction phaddsw_,   38h, 03h, 0
+Make3ByteInstruction pmaddubsw_, 38h, 04h, 0
+Make3ByteInstruction phsubw_,    38h, 05h, 0
+Make3ByteInstruction phsubd_,    38h, 06h, 0
+Make3ByteInstruction phsubsw_,   38h, 07h, 0
+Make3ByteInstruction psignb_,    38h, 08h, 0
+Make3ByteInstruction psignw_,    38h, 09h, 0
+Make3ByteInstruction psignd_,    38h, 0ah, 0
+Make3ByteInstruction pmulhrsw_,  38h, 0bh, 0
+Make3ByteInstruction pabsb_,     38h, 1ch, 0
+Make3ByteInstruction pabsw_,     38h, 1dh, 0
+Make3ByteInstruction pabsd_,     38h, 1eh, 0
+Make3ByteInstruction palignr_,   3ah, 0fh, 1
+
+.LIST

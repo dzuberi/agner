@@ -1,0 +1,47 @@
+                           TSCUni.txt                  © 2006-06-01 Agner Fog
+
+© 2006 GNU General Public License www.gnu.org/licenses
+
+TSCTest.cpp is a simple test program to test how many clock cycles a piece
+of code takes. The program will execute the code to test NUMTESTS times and
+then print out a list of clock counts.
+
+This code works on Windows, Linux, BSD and Mac OS X, 32 and 64 bits on Intel x86
+and AMD platforms.
+
+This code works with Microsoft, Intel, Borland, Gnu and Digital Mars compilers.
+It may work with other compilers as well. If your compiler doesn't support
+64 bit integers then replace __int64 by int or long int. If your compiler has
+problems with the inline assembly code then compile with USE_ALIB defined
+(command line option -DUSE_ALIB) and link with the apropriate version of 
+alibXXX.lib. The source code for alib is found at www.agner.org/assem/alib.zip.
+
+Instructions:
+-------------
+1. Insert the piece of code to test in TSCTest.cpp at the place marked 
+   ### Test code here ###. 
+
+2. Compile for console mode with debug option off.
+
+3. Run the executable file.
+
+
+File list:
+----------
+TSCTest.cpp    C++ source code for test program
+alib.h         C++ header file. only needed if external library used
+w32.dsw:       project workspace for Microsoft compiler, 32 bit Windows
+w32.dsp:       project file for Microsoft compiler, 32 bit Windows
+w32.opt:       project file for Microsoft compiler, 32 bit Windows
+MakeMS32.bat:  batch file for Microsoft compiler, 32 bit Windows
+MakeBor32.bat: batch file for Borland compiler, 32 bit Windows
+MakeDM32.bat:  batch file for Digital Mars compiler, 32 bit Windows
+MakeMS64.bat:  batch file for Microsoft compiler, 64 bit Windows
+MakeI64.bat:   batch file for Intel compiler, 64 bit Windows
+lg32.sh:       shell script for Gnu C++ compiler, 32 bit Linux
+lg64.sh:       shell script for Gnu C++ compiler, 64 bit Linux
+li32.sh:       shell script for Intel C++ compiler, 32 bit Linux
+li64.sh:       shell script for Intel C++ compiler, 64 bit Linux
+alibOMF.lib:   function library (32 bit OMF). only needed if USE_ALIB defined
+alibPE32.lib:  function library (32 bit PE). only needed if USE_ALIB defined
+alibPE64.lib:  function library (64 bit PE). only needed if USE_ALIB defined
